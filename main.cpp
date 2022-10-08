@@ -190,7 +190,7 @@ int main() {
 						putchar(shades[(uint32_t)((diff*diff*diff)*(shades.length() - 1))]);
 					}
 					else{
-						putchar('+');
+						putchar('.');
 					}
 				}
 				else{
@@ -201,7 +201,7 @@ int main() {
 		}
 		time += time_step;
 		light_pos = vec3((float)cos(time * (4 * M_PI)) * 15, 10, (float)sin(time * (M_PI * 4)) * 15);
-		usleep(1e5);
+		usleep(100);
 	}
 
 }
