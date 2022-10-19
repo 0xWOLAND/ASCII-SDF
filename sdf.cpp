@@ -3,8 +3,8 @@
 #include "vec3.h"
 #include "vec2.h"
 using namespace std;
-#define WIDTH 100 
-#define HEIGHT 200
+#define WIDTH  150 
+#define HEIGHT WIDTH * 2
 // ray marching
 const int max_iterations = 256;
 const float near_distance = 0.001;
@@ -159,19 +159,32 @@ float sdOctahedron( vec3 p, float s)
 
 float distanceField(vec3 p){
     float d = sdfSphere(p + vec3(-4, 3, 0), 0.5);
-    float d2 = sdBox( p + vec3(0,2,0), vec3(0.5) );	//object 2
+    float d2 = sdBox( p + vec3(-3, 3, 2), vec3(0.5) );	//object 2
     float d3 = sdTorus( p + vec3(-1,3,8), vec2(1.85, 0.5) );	//object 2
     // float d4 = opDisplaceTorus( p + vec3(-4,2,3), vec2(0.75, 0.55) );	//object 2
-    // float d4 = opTwist( p + vec3(0,0,0), vec2(1, 0.82) );	//object 2
+     float d4 = opTwist( p + vec3(0,0,0), vec2(1, 0.82) );	//object 2
     // float d4 = sdDeathStar(p + vec3(-4, 1, 3), 4.2, 3.5, 2.3);
-    float d4 = sdOctahedron(p + vec3(-4, 1, 3), 0.25f);
+//    float d4 = sdOctahedron(p + vec3(-4, 1, 3), 0.25f);
     d = min(d,d2);
     d = min(d,d3);
-    d = min(d,d4);
+//    d = min(d,d4);
     // d = min(d,d4);
 
-
+    if(d < 1.0f)
     return d;
+}
+
+vec3 getNormal(vec3 p){
+    float eps = 1e-1;
+    vec3 ex = vec3(eps,0,0);
+    vec3 ey = vec3(0,eps,0);
+    vec3 ez = vec3(0,0,eps);
+    vec3 ans(distanceField(p + ex) - distanceField(p - ex),
+            distanceField(p + ey) - distanceField(p - ey),
+            distanceField(p + ez) - distanceField(p - ez));
+    ans = ans.unit();
+    //cout << "ANS: " << ans << "\n";
+    return ans;
 }
 
 float rayMarching(vec3 eye, vec3 dir, float depth){
@@ -192,6 +205,7 @@ float rayMarching(vec3 eye, vec3 dir, float depth){
     if (d >= near_distance){
         return -1.0f;
     }
+
     return length(t * dir);
 }
 float march(Camera cm){
@@ -201,13 +215,30 @@ float march(Camera cm){
 
 const string shades = ".,-~:;=!*#$@";
 
+vec3 strangeAttractor(vec3 light, float time_step){
+    float x = light.x;
+    float y = light.y;
+    float z = light.z;
+
+    const float A = 0.2;
+    const float B = 0.2;
+    const float C = 5.7;
+
+    light.x += -(y + z) * time_step;
+    light.y += (x + A * y) * time_step;
+    light.z += (B + x * z - C * z) * time_step;
+    
+    return light;
+}
 
 int main() {
 
-    float time = 0, time_step = 1 / (float) 12;
     vec2 iResolution(WIDTH, HEIGHT);
     // iResolution *= 0.5f;
+    float time = 0, time_step = 1 / (float) 12;
+    vec3 light(0,0,0);
     while(1){
+        light = strangeAttractor(light, time_step);
         printf("\x1b[H");
         for(float r = WIDTH - 1; r >= 0; r--){
             for(float c = HEIGHT - 1; c >= 0; c--){
@@ -218,8 +249,18 @@ int main() {
                 if (val > 0.0) {
                     // Varying pixel colour
                     // vec3 col = 0.5 + 0.5*cos(time+uv+vec3(0.0,2.0,4.0));
-                    // putchar(shades[(uint32_t)((diff*diff*diff)*(shades.length() - 1))]);
-                    putchar('#');
+                    float diff;
+                    try {
+                        vec3 tmp = getNormal(cm.eye + cm.ray * val);
+                        //cout << "DIFF: " << tmp << "\n";
+                        diff = tmp.dot(light.unit());
+                    }
+                    catch(int e) {
+                        diff = 1.0f;
+                    }
+                    int shade = max(1, abs((int)((diff*diff*diff)*(shades.length() - 1))));
+                    putchar(shades[shade]);
+                    //putchar('#');
                     // putchar(shades[distShader(val)]);
                 } else {
                     // make everything outside the circle black
@@ -230,7 +271,7 @@ int main() {
         }
 
         time += time_step;
-        sleep(1);
-        // fflush(stdout);
+//        sleep(1e-5);
+         fflush(stdout);
     }
 }
