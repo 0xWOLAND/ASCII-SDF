@@ -107,11 +107,9 @@ float displacement(vec3 p){
 
 float sdDeathStar( vec3 p2, float ra, float rb, float d )
 {
-  // sampling independent computations (only depend on shape)
   float a = (ra*ra - rb*rb + d*d)/(2.0*d);
   float b = sqrt(max(ra*ra-a*a,0.0f));
 	
-  // sampling dependant computations
   vec2 p = vec2( p2.x, length(vec2(p2.y, p2.z)) );
   if( p.x*b-p.y*a > d*max(b-p.y,0.0f) )
     return length(p-vec2(a,b));
@@ -135,7 +133,7 @@ float opDisplaceTorus(vec3 p, vec2 t)
 
 float opTwist(vec3 p, vec2 t)
 {
-    const float k = 1.0; // or some other amount
+    const float k = 1.0;
     float c = cos(k*p.y);
     float s = sin(k*p.y);
     mat2  m = mat2(vec2(c,s),vec2(-s,c));
@@ -143,6 +141,18 @@ float opTwist(vec3 p, vec2 t)
     vec3  q = vec3(tmp.x, tmp.y,p.y);
     return sdTorus(q, t);
 }
+
+
+float opBend(vec3 p, vec2 t)
+{
+    const float k = 10.0; 
+    float c = cos(k*p.x);
+    float s = sin(k*p.x);
+    mat2  m = mat2(c,-s,s,c);
+    vec3  q = vec3(m*p.xy,p.z);
+    return sdTorus(q, t);
+}
+
 float sdOctahedron( vec3 p, float s)
 {
   p = abs(p);
